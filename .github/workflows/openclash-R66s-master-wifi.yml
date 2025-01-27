@@ -31,6 +31,9 @@ jobs:
           sudo -E apt clean
           sudo -E timedatectl set-timezone "Asia/Shanghai"
 
+      - name: Check disk space
+        run: df -h
+
       - name: Download and Extract Source Code
         run: |
           rm -rf .git/ .github/ *
