@@ -1,4 +1,4 @@
-name: openclash-R66s-master-wifi
+name: openclash-R66s-24-wifi
 
 on:
   push:
@@ -37,10 +37,14 @@ jobs:
       - name: Download and Extract Source Code
         run: |
           rm -rf .git/ .github/ *
-          git clone --depth=1 --branch=master https://github.com/immortalwrt/immortalwrt.git ./
+          git clone --depth=1 --branch=openwrt-24.10 https://github.com/immortalwrt/immortalwrt.git ./
+          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
 
       - name: Update feeds
         run: |
+          ./scripts/feeds update -a
+          rm -rf feeds/packages/utils/syncthing
+          mv tmp/syncthing feeds/packages/utils
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
