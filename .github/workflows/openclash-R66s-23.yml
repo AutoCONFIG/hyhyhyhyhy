@@ -15,24 +15,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@master
 
-      - name: Set up Ubuntu repositories
-        run: |
-          sudo cp /etc/apt/sources.list /etc/apt/sources.list.backup
-          sudo bash -c 'echo "deb http://security.ubuntu.com/ubuntu focal-security main universe" > /etc/apt/sources.list.d/ubuntu-focal-sources.list'
-          sudo bash -c 'echo "deb http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" > /etc/apt/sources.list'
-          sudo bash -c 'echo "deb-src http://archive.ubuntu.com/ubuntu/ focal main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb-src http://archive.ubuntu.com/ubuntu/ focal-updates main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb-src http://archive.ubuntu.com/ubuntu/ focal-security main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse" >> /etc/apt/sources.list'
-          sudo bash -c 'echo "deb-src http://archive.ubuntu.com/ubuntu/ focal-backports main restricted universe multiverse" >> /etc/apt/sources.list'
-
       - name: Initialization environment
         env:
           DEBIAN_FRONTEND: noninteractive
         run: |
-          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /etc/apt/sources.list.d /usr/local/lib/android /opt/ghc
           sudo -E apt-mark hold grub-efi-amd64-signed
           sudo -E apt update
           sudo -E apt -y full-upgrade
@@ -42,7 +28,11 @@ jobs:
           sudo -E apt -y autoremove --purge
           sudo -E apt autoclean
           sudo -E apt clean
+          sudo -E rm -rf /usr/share/dotnet /etc/mysql /etc/php /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL /usr/local/.ghcup /usr/share/swift /usr/local/share/powershell /usr/local/lib/heroku
           sudo -E timedatectl set-timezone "Asia/Shanghai"
+
+      - name: Check disk space
+        run: df -h
 
       - name: Download and Extract Source Code
         run: |
@@ -82,7 +72,6 @@ jobs:
           CONFIG_TARGET_rockchip=y
           CONFIG_TARGET_rockchip_armv8=y
           CONFIG_TARGET_rockchip_armv8_DEVICE_lunzn_fastrhino-r66s=y
-          CONFIG_PACKAGE_kmod-tcp-bbr=y
           CONFIG_PACKAGE_luci-app-ddns-go=y
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk is not set
@@ -92,12 +81,12 @@ jobs:
           CONFIG_PACKAGE_luci-app-qbittorrent=y
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-ng is not set
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-webui is not set
+          CONFIG_PACKAGE_luci-app-rustdesk-server=y
           CONFIG_PACKAGE_luci-app-syncthing=y
           CONFIG_PACKAGE_luci-app-upnp=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
-          CONFIG_PACKAGE_rustdesk-server=y
           CONFIG_TARGET_ROOTFS_PARTSIZE=1024
           EOF
 
@@ -120,7 +109,7 @@ jobs:
           mkdir -p ./artifact/package
           mkdir -p ./artifact/buildinfo
           rm -rf $(find ./bin/targets/ -type d -name "packages")
-          cp -rf $(find ./bin/packages/ -type f -name "*.ipk") ./artifact/package/
+          cp -rf $(find ./bin/packages/ -type f \( -name "*.ipk" -o -name "*.apk" \)) ./artifact/package/
           cp -rf $(find ./bin/targets/ -type f -name "*.buildinfo" -o -name "*.manifest") ./artifact/buildinfo/
 
       - name: Upload buildinfo
