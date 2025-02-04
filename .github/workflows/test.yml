@@ -37,7 +37,7 @@ jobs:
       - name: Download and Extract Source Code
         run: |
           rm -rf .git/ .github/ *
-          git clone --depth=1 --branch=master https://github.com/immortalwrt/immortalwrt.git ./
+          git clone --depth=1 --branch=openwrt-24.10 https://github.com/immortalwrt/immortalwrt.git ./
           sed -i 's/src-git packages https:\/\/github.com\/immortalwrt\/packages.git/src-git packages https:\/\/github.com\/AutoCONFIG\/packages.git/' feeds.conf.default
           sed -i 's/src-git luci https:\/\/github.com\/immortalwrt\/luci.git/src-git luci https:\/\/github.com\/AutoCONFIG\/luci.git/' feeds.conf.default
           cat feeds.conf.default
