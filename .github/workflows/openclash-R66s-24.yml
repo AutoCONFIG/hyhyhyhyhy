@@ -105,7 +105,7 @@ jobs:
           make defconfig
 
       - name: Download packages
-        run: make download -j16 V=s
+        run: make download -j1 V=s
     
       - name: Build firmware
         run: |
