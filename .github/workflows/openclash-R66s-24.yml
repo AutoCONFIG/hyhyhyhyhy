@@ -51,8 +51,8 @@ jobs:
           mv "OpenClash-$CA_TAG"/luci-app-openclash package/
           rm -rf "immortalwrt-$OP_TAG" "OpenClash-$CA_TAG" openwrt_latest.zip openclash_latest.zip
 
-          git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
-          git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
+          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
+          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-vlmcsd.git tmp/luci-app-vlmcsd
