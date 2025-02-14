@@ -91,6 +91,7 @@ jobs:
           CONFIG_PACKAGE_luci-app-rustdesk-server=y
           CONFIG_PACKAGE_luci-app-syncthing=y
           CONFIG_PACKAGE_luci-app-upnp=y
+          CONFIG_PACKAGE_luci-app-verysync=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
