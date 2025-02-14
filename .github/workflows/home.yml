@@ -1,4 +1,4 @@
-name: openclash-R66s-23
+name: home
 
 on:
   push:
@@ -38,18 +38,13 @@ jobs:
         run: |
           rm -rf .git/ .github/ *
           OPENWRT_LATEST=$(curl -s "https://api.github.com/repos/immortalwrt/immortalwrt/tags" | grep '"name": "v23' | head -n 1 | cut -d '"' -f 4)
-          CLASH_LATEST=$(curl -s "https://api.github.com/repos/vernesong/OpenClash/tags" | grep 'name' | head -n 1 | cut -d '"' -f 4)
-          echo "Downloading $OPENWRT_LATEST... and $CLASH_LATEST "
+          echo "Downloading $OPENWRT_LATEST..."
           wget "https://github.com/immortalwrt/immortalwrt/archive/refs/tags/$OPENWRT_LATEST.zip" -O openwrt_latest.zip
-          wget "https://github.com/vernesong/OpenClash/archive/refs/tags/$CLASH_LATEST.zip" -O openclash_latest.zip
           OP_TAG=$(echo "$OPENWRT_LATEST" | sed 's/^v//')
-          CA_TAG=$(echo "$CLASH_LATEST" | sed 's/^v//')
-          echo "Extracting version: $OP_TAG and $CA_TAG"
+          echo "Extracting version: $OP_TAG..."
           unzip -q openwrt_latest.zip -d .
-          unzip -q openclash_latest.zip -d .
           mv "immortalwrt-$OP_TAG"/* .
-          mv "OpenClash-$CA_TAG"/luci-app-openclash package/
-          rm -rf "immortalwrt-$OP_TAG" "OpenClash-$CA_TAG" openwrt_latest.zip openclash_latest.zip
+          rm -rf "immortalwrt-$OP_TAG" openwrt_latest.zip
 
           git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
           git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
@@ -60,7 +55,7 @@ jobs:
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
-          rm -rf feeds/luci/applications/luci-app-openclash feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
+          rm -rf feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
           rm -rf feeds/packages/net/rustdesk-server feeds/packages/net/vlmcsd feeds/packages/utils/syncthing
           mv tmp/luci-app-* feeds/luci/applications
           mv tmp/rustdesk-server feeds/packages/net
@@ -83,7 +78,6 @@ jobs:
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk is not set
           CONFIG_PACKAGE_luci-app-ksmbd=y
-          CONFIG_PACKAGE_luci-app-openclash=y
           CONFIG_PACKAGE_luci-app-openvpn=y
           CONFIG_PACKAGE_luci-app-qbittorrent=y
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-ng is not set
