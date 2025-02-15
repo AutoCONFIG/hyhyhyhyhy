@@ -37,15 +37,7 @@ jobs:
       - name: Download and Extract Source Code
         run: |
           rm -rf .git/ .github/ *
-          OPENWRT_LATEST=$(curl -s "https://api.github.com/repos/immortalwrt/immortalwrt/tags" | grep '"name": "v23' | head -n 1 | cut -d '"' -f 4)
-          echo "Downloading $OPENWRT_LATEST..."
-          wget "https://github.com/immortalwrt/immortalwrt/archive/refs/tags/$OPENWRT_LATEST.zip" -O openwrt_latest.zip
-          OP_TAG=$(echo "$OPENWRT_LATEST" | sed 's/^v//')
-          echo "Extracting version: $OP_TAG..."
-          unzip -q openwrt_latest.zip -d .
-          mv "immortalwrt-$OP_TAG"/* .
-          rm -rf "immortalwrt-$OP_TAG" openwrt_latest.zip
-
+          git clone --depth=1 --branch=openwrt-23.05 https://github.com/immortalwrt/immortalwrt.git ./
           git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
           git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
@@ -87,6 +79,7 @@ jobs:
           CONFIG_PACKAGE_luci-app-upnp=y
           CONFIG_PACKAGE_luci-app-verysync=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
+          CONFIG_PACKAGE_luci-proto-wireguard=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
           CONFIG_TARGET_ROOTFS_PARTSIZE=1024
