@@ -145,7 +145,7 @@ jobs:
           CONFIG_PACKAGE_php8-pecl-raphf=y
           CONFIG_PACKAGE_php8-pecl-redis=y
           CONFIG_PACKAGE_redis-server=y
-          CONFIG_TARGET_ROOTFS_PARTSIZE=256
+          CONFIG_TARGET_ROOTFS_PARTSIZE=1024
           EOF
 
           #
