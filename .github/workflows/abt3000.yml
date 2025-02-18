@@ -1,11 +1,8 @@
 name: abt3000
 
 on:
-  push:
-    branches: 
-      - master
   schedule:
-    - cron: 0 18 * * *
+    - cron: 0 18 1 * *
 
 jobs:
   build:
