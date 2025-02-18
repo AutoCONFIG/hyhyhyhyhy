@@ -98,7 +98,7 @@ jobs:
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
           CONFIG_PACKAGE_wpad=y
-          CONFIG_TARGET_ROOTFS_PARTSIZE=140
+          CONFIG_TARGET_ROOTFS_PARTSIZE=172
           EOF
 
           #
