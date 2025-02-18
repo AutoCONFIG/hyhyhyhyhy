@@ -101,7 +101,7 @@ jobs:
           CONFIG_PACKAGE_rsync=y
           CONFIG_PACKAGE_rustdesk-server=y
           CONFIG_PACKAGE_wpad=y
-          CONFIG_TARGET_ROOTFS_PARTSIZE=1024
+          CONFIG_TARGET_ROOTFS_PARTSIZE=512
           EOF
 
           #
