@@ -2,7 +2,7 @@ name: openclash-R66s-24
 
 on:
   push:
-    branches: 
+    branches:
       - master
   schedule:
     - cron: 0 18 * * *
