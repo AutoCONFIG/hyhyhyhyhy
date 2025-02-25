@@ -56,19 +56,16 @@ jobs:
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-vlmcsd.git tmp/luci-app-vlmcsd
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rust.git tmp/rust
 
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           rm -rf feeds/luci/applications/luci-app-openclash feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
           rm -rf feeds/packages/net/rustdesk-server feeds/packages/net/vlmcsd feeds/packages/utils/syncthing
-          rm -rf feeds/packages/lang/rust
           mv tmp/luci-app-* feeds/luci/applications
           mv tmp/rustdesk-server feeds/packages/net
           mv tmp/vlmcsd feeds/packages/net
           mv tmp/syncthing feeds/packages/utils
-          mv tmp/rust feeds/packages/lang
           rm -rf tmp/
           ./scripts/feeds update -a
           ./scripts/feeds install -a
