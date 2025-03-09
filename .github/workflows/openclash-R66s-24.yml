@@ -107,6 +107,9 @@ jobs:
 
           sed -i 's/^[ \t]*//g' package/base-files/files/etc/sysctl.d/20-others.conf
 
+          sed -i 's/+kmod-nft-fullcone //' package/network/config/firewall4/Makefile
+          cat package/network/config/firewall4/Makefile
+
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
