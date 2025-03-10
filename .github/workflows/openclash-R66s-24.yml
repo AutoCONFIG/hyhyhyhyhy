@@ -104,8 +104,12 @@ jobs:
           EOL
 
           sed -i 's/^[ \t]*//g' package/base-files/files/etc/sysctl.d/20-others.conf
-
           sed -i 's/+kmod-nft-fullcone //' package/network/config/firewall4/Makefile
+
+          rm -rf package/network/utils/fullconenat-nft
+          rm -rf package/network/config/firewall4/patches/001-firewall4-add-support-for-fullcone-nat.patch
+          rm -rf package/network/utils/nftables/patches/002-nftables-add-fullcone-expression-support.patch
+          rm -rf package/libs/libnftnl/patches/001-libnftnl-add-fullcone-expression-support.patch
 
       - name: Update feeds
         run: |
