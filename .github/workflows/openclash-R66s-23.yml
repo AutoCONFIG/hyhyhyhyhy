@@ -1,4 +1,4 @@
-name: home-R66s-23
+name: openclash-R66s-23
 
 on:
   push:
@@ -38,7 +38,7 @@ jobs:
         run: |
           rm -rf .git/ .github/ *
           git clone --depth=1 --branch=openwrt-23.05 https://github.com/immortalwrt/immortalwrt.git ./
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
+          git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
