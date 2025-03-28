@@ -136,6 +136,7 @@ jobs:
           CONFIG_PACKAGE_luci-app-verysync=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_luci-proto-wireguard=y
+          CONFIG_PACKAGE_openssl-util=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
           CONFIG_TARGET_ROOTFS_PARTSIZE=512
