@@ -67,11 +67,11 @@ jobs:
             -e 's/ifneq ($(filter i386 i686 x86_64, $(ARCH)),)/ifneq ($(filter i386 i686 aarch64, $(ARCH)),)/' package/emortal/autocore/Makefile
 
           cat > package/base-files/files/etc/sysctl.d/20-others.conf << EOL
-          net.core.rmem_max=134217728
-          net.core.wmem_max=134217728
-          net.core.optmem_max=4194304
-          net.core.somaxconn=262144
-          net.core.netdev_max_backlog=500000
+          net.core.rmem_max=67108864
+          net.core.wmem_max=67108864
+          net.core.optmem_max=2097152
+          net.core.somaxconn=65535
+          net.core.netdev_max_backlog=100000
 
           net.core.default_qdisc=fq_codel
           net.core.dev_weight=1024
@@ -81,17 +81,17 @@ jobs:
           net.core.flow_limit_cpu_bitmap=f
           net.core.flow_limit_table_len=8192
 
-          net.ipv4.tcp_mem=262144 393216 471859
+          net.ipv4.tcp_mem=196608 262144 393216
           net.ipv4.tcp_tw_reuse=1
           net.ipv4.tcp_fastopen=3
           net.ipv4.tcp_max_syn_backlog=8192
           net.ipv4.tcp_max_tw_buckets=200000
-          net.ipv4.tcp_rmem=4096 131072 134217728
-          net.ipv4.tcp_wmem=4096 131072 134217728
+          net.ipv4.tcp_rmem=4096 65536 67108864
+          net.ipv4.tcp_wmem=4096 65536 67108864
 
-          net.netfilter.nf_conntrack_max=1048576
-          net.netfilter.nf_conntrack_buckets=262144
-          net.netfilter.nf_conntrack_expect_max=1048576
+          net.netfilter.nf_conntrack_max=262144
+          net.netfilter.nf_conntrack_buckets=65536
+          net.netfilter.nf_conntrack_expect_max=65536
           net.netfilter.nf_conntrack_tcp_be_liberal=1
 
           vm.swappiness=5
