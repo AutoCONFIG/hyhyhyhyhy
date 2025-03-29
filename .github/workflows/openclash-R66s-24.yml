@@ -151,7 +151,7 @@ jobs:
           CONFIG_PACKAGE_luci-proto-wireguard=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
-          CONFIG_TARGET_ROOTFS_PARTSIZE=512
+          CONFIG_TARGET_ROOTFS_PARTSIZE=1024
           EOF
 
           #

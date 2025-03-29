@@ -120,6 +120,7 @@ jobs:
           CONFIG_TARGET_rockchip=y
           CONFIG_TARGET_rockchip_armv8=y
           CONFIG_TARGET_rockchip_armv8_DEVICE_lunzn_fastrhino-r66s=y
+          CONFIG_PACKAGE_docker-compose=y
           CONFIG_PACKAGE_luci-app-ddns-go=y
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk is not set
@@ -136,11 +137,10 @@ jobs:
           CONFIG_PACKAGE_luci-app-verysync=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_luci-proto-wireguard=y
-          CONFIG_PACKAGE_docker-compose=y
           CONFIG_PACKAGE_openssl-util=y
           CONFIG_PACKAGE_openvpn-openssl=y
           CONFIG_PACKAGE_rsync=y
-          CONFIG_TARGET_ROOTFS_PARTSIZE=512
+          CONFIG_TARGET_ROOTFS_PARTSIZE=1024
           EOF
 
           #
