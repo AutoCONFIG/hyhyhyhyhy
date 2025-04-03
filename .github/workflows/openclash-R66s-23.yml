@@ -88,8 +88,6 @@ jobs:
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
           # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk is not set
           CONFIG_PACKAGE_luci-app-dockerman=y
-          CONFIG_PACKAGE_luci-app-frpc=y
-          CONFIG_PACKAGE_luci-app-frps=y
           CONFIG_PACKAGE_luci-app-ksmbd=y
           CONFIG_PACKAGE_luci-app-openclash=y
           CONFIG_PACKAGE_luci-app-openvpn=y
