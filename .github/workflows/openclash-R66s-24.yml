@@ -52,10 +52,10 @@ jobs:
           rm -rf "immortalwrt-$OP_TAG" "OpenClash-$CA_TAG" openwrt_latest.zip openclash_latest.zip
 
           git clone --depth=1 --branch=master https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
-          git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-vlmcsd.git tmp/luci-app-vlmcsd
+          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
+          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
+          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
+          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-vlmcsd.git tmp/luci-app-vlmcsd
 
       - name: Others
         run: |
@@ -76,11 +76,12 @@ jobs:
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
-          rm -rf feeds/luci/applications/luci-app-openclash feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
-          rm -rf feeds/packages/net/rustdesk-server feeds/packages/net/vlmcsd feeds/packages/utils/syncthing
-          mv tmp/luci-app-* feeds/luci/applications
-          mv tmp/rustdesk-server feeds/packages/net
-          mv tmp/vlmcsd feeds/packages/net
+          # rm -rf feeds/luci/applications/luci-app-openclash feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
+          # rm -rf feeds/packages/net/rustdesk-server feeds/packages/net/vlmcsd
+          rm -rf feeds/packages/utils/syncthing
+          # mv tmp/luci-app-* feeds/luci/applications
+          # mv tmp/rustdesk-server feeds/packages/net
+          # mv tmp/vlmcsd feeds/packages/net
           mv tmp/syncthing feeds/packages/utils
           rm -rf tmp/
           ./scripts/feeds update -a
