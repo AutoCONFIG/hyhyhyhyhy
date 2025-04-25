@@ -61,8 +61,8 @@ jobs:
           ./scripts/feeds update -a
           rm -rf feeds/luci/applications/luci-app-dockerman
           rm -rf feeds/packages/utils/containerd feeds/packages/utils/docker feeds/packages/utils/docker-compose feeds/packages/utils/dockerd feeds/packages/utils/tini
-          mv tmp/luci-app-dockerman feeds/luci/applications
-          mv tmp/* feeds/packages/utils
+          mv tmp/docker/luci-app-dockerman feeds/luci/applications
+          mv tmp/docker/* feeds/packages/utils
           rm -rf tmp/
           ./scripts/feeds update -a
           ./scripts/feeds install -a
