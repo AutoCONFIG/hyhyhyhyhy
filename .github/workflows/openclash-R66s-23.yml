@@ -38,11 +38,15 @@ jobs:
         run: |
           rm -rf .git/ .github/ *
           git clone --depth=1 --branch=openwrt-23.05 https://github.com/immortalwrt/immortalwrt.git ./
-          git clone --depth=1 --branch=nobuild_arm64 https://github.com/AutoCONFIG/syncthing.git tmp/syncthing
-          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/rustdesk-server.git tmp/rustdesk-server
-          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-rustdesk-server.git tmp/luci-app-rustdesk-server
-          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/vlmcsd.git tmp/vlmcsd
-          # git clone --depth=1 --branch=master https://github.com/AutoCONFIG/luci-app-vlmcsd.git tmp/luci-app-vlmcsd
+          CLASH_LATEST=$(curl -s "https://api.github.com/repos/vernesong/OpenClash/tags" | grep 'name' | head -n 1 | cut -d '"' -f 4)
+          echo "Downloading $CLASH_LATEST "
+          wget "https://github.com/vernesong/OpenClash/archive/refs/tags/$CLASH_LATEST.zip" -O openclash_latest.zip
+          CA_TAG=$(echo "$CLASH_LATEST" | sed 's/^v//')
+          echo "Extracting version: $CA_TAG"
+          unzip -q openclash_latest.zip -d .
+          mv "OpenClash-$CA_TAG"/luci-app-openclash package/
+          rm -rf "OpenClash-$CA_TAG" openclash_latest.zip
+
 
       - name: Others
         run: |
@@ -53,24 +57,8 @@ jobs:
             -e '/+TARGET_x86:lm-sensors/d' \
             -e 's/ifneq ($(filter i386 i686 x86_64, $(ARCH)),)/ifneq ($(filter i386 i686 aarch64, $(ARCH)),)/' package/emortal/autocore/Makefile
 
-          sed -i 's/+kmod-nft-fullcone //' package/network/config/firewall4/Makefile
-
-          rm -rf package/network/utils/fullconenat-nft
-          rm -rf package/network/config/firewall4/patches/001-firewall4-add-support-for-fullcone-nat.patch
-          rm -rf package/network/utils/nftables/patches/002-nftables-add-fullcone-expression-support.patch
-          rm -rf package/libs/libnftnl/patches/001-libnftnl-add-fullcone-expression-support.patch
-
       - name: Update feeds
         run: |
-          ./scripts/feeds update -a
-          # rm -rf feeds/luci/applications/luci-app-rustdesk-server feeds/luci/applications/luci-app-vlmcsd
-          # rm -rf feeds/packages/net/rustdesk-server feeds/packages/net/vlmcsd
-          rm -rf feeds/packages/utils/syncthing
-          # mv tmp/luci-app-* feeds/luci/applications
-          # mv tmp/rustdesk-server feeds/packages/net
-          # mv tmp/vlmcsd feeds/packages/net
-          mv tmp/syncthing feeds/packages/utils
-          rm -rf tmp/
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
@@ -92,12 +80,9 @@ jobs:
           CONFIG_PACKAGE_luci-app-openvpn=y
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-ng is not set
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-webui is not set
-          CONFIG_PACKAGE_luci-app-rustdesk-server=y
-          CONFIG_PACKAGE_luci-app-syncthing=y
           CONFIG_PACKAGE_luci-app-upnp=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_openvpn-openssl=y
-          CONFIG_PACKAGE_rsync=y
           CONFIG_TARGET_ROOTFS_PARTSIZE=1024
           EOF
 
