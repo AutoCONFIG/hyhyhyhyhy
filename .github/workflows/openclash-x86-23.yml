@@ -52,6 +52,10 @@ jobs:
           ./scripts/feeds update -a
           ./scripts/feeds install -a
 
+      - name: Sed Raid Condig
+        run: |
+          sed -i '/\$PROG --assemble --scan --config="\$CONF"/a\\n\t[ -w /proc/sys/dev/raid/speed_limit_min ] && {\n\t\techo 200000 > /proc/sys/dev/raid/speed_limit_min\n\t\techo 800000 > /proc/sys/dev/raid/speed_limit_max\n\t}' package/utils/mdadm/files/mdadm.init
+
       - name: Generate configuration file
         run: |
           rm -f ./.config*
