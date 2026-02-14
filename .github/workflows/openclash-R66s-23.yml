@@ -47,20 +47,14 @@ jobs:
           mv "OpenClash-$CA_TAG"/luci-app-openclash package/
           rm -rf "OpenClash-$CA_TAG" openclash_latest.zip
 
-
-      - name: Others
-        run: |
-          sed -i \
-            -e 's/CONFIG_TARGET_x86/CONFIG_TARGET_rockchip/' \
-            -e 's/+TARGET_x86:ethtool[[:space:]]*\\[[:space:]]*$/+TARGET_rockchip:ethtool/' \
-            -e 's/+TARGET_x86:ethtool$/+TARGET_rockchip:ethtool/' \
-            -e '/+TARGET_x86:lm-sensors/d' \
-            -e 's/ifneq ($(filter i386 i686 x86_64, $(ARCH)),)/ifneq ($(filter i386 i686 aarch64, $(ARCH)),)/' package/emortal/autocore/Makefile
-
       - name: Update feeds
         run: |
           ./scripts/feeds update -a
           ./scripts/feeds install -a
+
+      - name: Sed Raid Condig
+        run: |
+          sed -i '/\$PROG --assemble --scan --config="\$CONF"/a\\n\t[ -w /proc/sys/dev/raid/speed_limit_min ] && {\n\t\techo 200000 > /proc/sys/dev/raid/speed_limit_min\n\t\techo 800000 > /proc/sys/dev/raid/speed_limit_max\n\t}' package/utils/mdadm/files/mdadm.init
 
       - name: Generate configuration file
         run: |
@@ -73,13 +67,15 @@ jobs:
           CONFIG_TARGET_rockchip_armv8_DEVICE_lunzn_fastrhino-r66s=y
           CONFIG_PACKAGE_kmod-tcp-bbr=y
           CONFIG_PACKAGE_luci-app-ddns-go=y
-          # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_btrfs_progs is not set
-          # CONFIG_PACKAGE_luci-app-diskman_INCLUDE_lsblk is not set
+          CONFIG_PACKAGE_luci-app-diskman=y
+          CONFIG_PACKAGE_luci-app-diskman_INCLUDE_kmod_md_raid456=y
+          CONFIG_PACKAGE_luci-app-diskman_INCLUDE_mdadm=y
           CONFIG_PACKAGE_luci-app-ksmbd=y
           CONFIG_PACKAGE_luci-app-openclash=y
           CONFIG_PACKAGE_luci-app-openvpn=y
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-ng is not set
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-webui is not set
+          CONFIG_PACKAGE_luci-app-syncthing=y
           CONFIG_PACKAGE_luci-app-upnp=y
           CONFIG_PACKAGE_luci-app-vlmcsd=y
           CONFIG_PACKAGE_openvpn-openssl=y
@@ -88,7 +84,7 @@ jobs:
 
           #
           # ===============================================================
-          # 
+          #
 
           sed -i 's/^[ \t]*//g' ./.config
           make defconfig
