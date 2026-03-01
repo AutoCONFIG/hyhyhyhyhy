@@ -77,6 +77,7 @@ jobs:
           CONFIG_PACKAGE_luci-app-diskman_INCLUDE_mdadm=y
           CONFIG_PACKAGE_luci-app-dockerman=y
           CONFIG_PACKAGE_luci-app-ksmbd=y
+          CONFIG_PACKAGE_luci-app-nfs=y
           CONFIG_PACKAGE_luci-app-openclash=y
           CONFIG_PACKAGE_luci-app-openvpn=y
           # CONFIG_PACKAGE_luci-app-rclone_INCLUDE_rclone-ng is not set
