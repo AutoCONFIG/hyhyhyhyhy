@@ -1,0 +1,205 @@
+name: Build firmware
+
+on:
+  workflow_call:
+    inputs:
+      source-repository:
+        required: true
+        type: string
+      source-ref:
+        required: true
+        type: string
+      config:
+        required: true
+        type: string
+      base-config:
+        default: ''
+        type: string
+      openclash:
+        default: true
+        type: boolean
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+      SOURCE_REF: ${{ inputs.source-ref }}
+      OPENCLASH: ${{ inputs.openclash }}
+      CONFIG_FILE: ${{ inputs.config }}
+      BASE_CONFIG: ${{ inputs.base-config }}
+
+    steps:
+      - name: Checkout build configuration
+        uses: actions/checkout@v4
+
+      - name: Restore failed run checkpoint
+        id: retry
+        uses: actions/cache/restore@v4
+        with:
+          path: openwrt
+          key: ${{ runner.os }}-${{ github.workflow }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-retry-v1-${{ github.run_id }}-
+
+      - name: Download source
+        if: steps.retry.outputs.cache-matched-key == ''
+        run: bash .github/scripts/prepare-source.sh
+
+      - name: Fingerprint source
+        if: steps.retry.outputs.cache-matched-key == ''
+        id: source
+        working-directory: openwrt
+        run: |
+          fingerprint=$(bash "$GITHUB_WORKSPACE/.github/scripts/build-fingerprint.sh" .)
+          echo "key=$fingerprint" >> "$GITHUB_OUTPUT"
+
+      - name: Update feeds
+        if: steps.retry.outputs.cache-matched-key == ''
+        working-directory: openwrt
+        run: ./scripts/feeds update -a
+
+      - name: Fingerprint build inputs
+        id: fingerprint
+        env:
+          SOURCE_FINGERPRINT: ${{ steps.source.outputs.key }}
+        working-directory: openwrt
+        run: |
+          if [[ ! -f .build-fingerprint ]]; then
+            feeds=()
+            for feed in feeds/*; do
+              if [[ -d "$feed" && "$feed" != *.tmp ]]; then
+                feeds+=("$feed")
+              fi
+            done
+            bash "$GITHUB_WORKSPACE/.github/scripts/build-fingerprint.sh" "${feeds[@]}" > .build-fingerprint
+          fi
+          fingerprint=$(cat .build-fingerprint)
+          [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]]
+          echo "key=$fingerprint" >> "$GITHUB_OUTPUT"
+          if [[ -f .build-complete ]]; then
+            echo "compiled=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Restore successful build record
+        id: previous
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/successful-build
+          key: ${{ runner.os }}-${{ github.workflow }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ github.workflow }}-build-v1-${{ steps.fingerprint.outputs.key }}-
+
+      - name: Check previous artifacts
+        id: build
+        run: |
+          if bash .github/scripts/previous-build.sh; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Initialize environment
+        if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: bash .github/scripts/initialize.sh
+
+      - name: Restore downloads
+        if: steps.build.outputs.required == 'true' && steps.retry.outputs.cache-matched-key == ''
+        id: downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: openwrt/dl
+          key: ${{ runner.os }}-${{ inputs.source-repository }}-${{ inputs.source-ref }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.source-repository }}-${{ inputs.source-ref }}-dl-v1-
+
+      - name: Configure firmware
+        if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
+        working-directory: openwrt
+        run: bash "$GITHUB_WORKSPACE/.github/scripts/configure.sh"
+
+      - name: Download packages
+        if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
+        id: download
+        working-directory: openwrt
+        run: make download -j16
+
+      - name: Save downloads
+        if: ${{ !cancelled() && steps.downloads.outcome == 'success' && (steps.download.outcome == 'success' || steps.download.outcome == 'failure') }}
+        uses: actions/cache/save@v4
+        with:
+          path: openwrt/dl
+          key: ${{ steps.downloads.outputs.cache-primary-key }}
+
+      - name: Build firmware
+        if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
+        id: compile
+        working-directory: openwrt
+        run: |
+          make -j"$(nproc)" || make -j1 V=s
+          touch .build-complete
+
+      - name: Prepare artifacts
+        if: steps.build.outputs.required == 'true'
+        working-directory: openwrt
+        run: |
+          mkdir -p artifact/package artifact/buildinfo
+          find bin/targets/ -type d -name packages -exec rm -rf {} +
+          find bin/packages/ -type f \( -name '*.ipk' -o -name '*.apk' \) -exec cp -f -t artifact/package/ {} +
+          find bin/targets/ -type f \( -name '*.buildinfo' -o -name '*.manifest' \) -exec cp -f -t artifact/buildinfo/ {} +
+
+      - name: Upload buildinfo
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt_buildinfo
+          path: openwrt/artifact/buildinfo/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Upload packages
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt_package
+          path: openwrt/artifact/package/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Upload firmware
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: immortalwrt_firmware
+          path: openwrt/bin/targets/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Record successful build
+        if: steps.build.outputs.required == 'true'
+        run: echo "$GITHUB_RUN_ID" > "$RUNNER_TEMP/successful-build"
+
+      - name: Save successful build record
+        if: steps.build.outputs.required == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/successful-build
+          key: ${{ steps.previous.outputs.cache-primary-key }}
+
+      - name: Save failed run checkpoint
+        if: failure() && steps.fingerprint.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: openwrt
+          key: ${{ steps.retry.outputs.cache-primary-key }}
