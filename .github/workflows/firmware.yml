@@ -1,11 +1,6 @@
 name: Firmware matrix
 
 on:
-  push:
-    branches:
-      - master
-    paths:
-      - .github/**
   schedule:
     - cron: 0 18 * * *
 
