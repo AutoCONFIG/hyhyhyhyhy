@@ -1,6 +1,6 @@
 # 每日固件构建
 
-两个工作流每天北京时间 02:00 分别触发，构建进度和产物在各自的 Actions 运行详情中查看。
+两个工作流每天北京时间 02:00 定时触发，推送到 `master` 时也会触发。构建进度和产物在各自的 Actions 运行详情中查看。
 
 - **Build firmware**（`.github/workflows/build-firmware.yml`）从源码构建 x86-25、R66s-25 和 abt3000。
 - **Build ImageBuilder**（`.github/workflows/build-imagebuilder.yml`）组装 x86-25 和 R66s-25 的固件。
