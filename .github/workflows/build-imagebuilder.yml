@@ -1,47 +1,45 @@
 name: Build ImageBuilder
 
 on:
-  workflow_call:
-    inputs:
-      build-name:
-        required: true
-        type: string
-      source-repository:
-        required: true
-        type: string
-      source-ref:
-        required: true
-        type: string
-      config:
-        required: true
-        type: string
-      target:
-        required: true
-        type: string
-      profile:
-        required: true
-        type: string
+  schedule:
+    - cron: 0 18 * * *
 
 permissions:
   contents: read
   actions: write
 
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.build-name }}
-  cancel-in-progress: false
-
 jobs:
   build:
+    name: ${{ matrix.build-name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build-name: openclash-x86-25-imagebuilder
+            source-repository: immortalwrt/immortalwrt
+            source-ref: v25
+            config: .github/configs/openclash-x86.config
+            target: x86/64
+            profile: generic
+          - build-name: openclash-R66s-25-imagebuilder
+            source-repository: immortalwrt/immortalwrt
+            source-ref: v25
+            config: .github/configs/openclash-R66s.config
+            target: rockchip/armv8
+            profile: lunzn_fastrhino-r66s
+    concurrency:
+      group: firmware-${{ matrix.build-name }}-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ github.token }}
-      BUILD_NAME: ${{ inputs.build-name }}
-      SOURCE_REPOSITORY: ${{ inputs.source-repository }}
-      SOURCE_REF: ${{ inputs.source-ref }}
+      BUILD_NAME: ${{ matrix.build-name }}
+      SOURCE_REPOSITORY: ${{ matrix.source-repository }}
+      SOURCE_REF: ${{ matrix.source-ref }}
       OPENCLASH: 'true'
-      CONFIG_FILE: ${{ inputs.config }}
-      TARGET: ${{ inputs.target }}
-      PROFILE: ${{ inputs.profile }}
+      CONFIG_FILE: ${{ matrix.config }}
+      TARGET: ${{ matrix.target }}
+      PROFILE: ${{ matrix.profile }}
       IMAGEBUILDER_METADATA_DIR: ${{ github.workspace }}/.imagebuilder-metadata
       IMAGEBUILDER_CACHE: ${{ github.workspace }}/.imagebuilder-cache
       ARTIFACT_DIR: ${{ github.workspace }}/.imagebuilder-artifact
@@ -59,9 +57,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .imagebuilder-cache
-          key: ${{ runner.os }}-${{ inputs.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-
+            ${{ runner.os }}-${{ matrix.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-
 
       - name: Prepare ImageBuilder inputs
         id: prepare
@@ -91,9 +89,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/successful-build
-          key: ${{ runner.os }}-${{ inputs.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-
+            ${{ runner.os }}-${{ matrix.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-
 
       - name: Check previous artifacts
         id: build
@@ -105,7 +103,7 @@ jobs:
           fi
 
       - name: Install x86 image tools
-        if: steps.build.outputs.required == 'true' && inputs.target == 'x86/64'
+        if: steps.build.outputs.required == 'true' && matrix.target == 'x86/64'
         run: |
           sudo apt-get update
           sudo apt-get install -y genisoimage qemu-utils
@@ -118,7 +116,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_buildinfo
+          name: ${{ matrix.build-name }}_buildinfo
           path: .imagebuilder-artifact/buildinfo/
           if-no-files-found: error
           overwrite: true
@@ -127,7 +125,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_package
+          name: ${{ matrix.build-name }}_package
           path: .imagebuilder-artifact/package/
           if-no-files-found: error
           overwrite: true
@@ -136,7 +134,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_firmware
+          name: ${{ matrix.build-name }}_firmware
           path: .imagebuilder-artifact/firmware/
           if-no-files-found: error
           overwrite: true

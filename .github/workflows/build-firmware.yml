@@ -1,46 +1,48 @@
 name: Build firmware
 
 on:
-  workflow_call:
-    inputs:
-      source-repository:
-        required: true
-        type: string
-      source-ref:
-        required: true
-        type: string
-      build-name:
-        required: true
-        type: string
-      config:
-        required: true
-        type: string
-      base-config:
-        default: ''
-        type: string
-      openclash:
-        default: true
-        type: boolean
+  schedule:
+    - cron: 0 18 * * *
 
 permissions:
   contents: read
   actions: write
 
-concurrency:
-  group: firmware-${{ inputs.build-name }}-${{ github.ref }}
-  cancel-in-progress: false
-
 jobs:
   build:
+    name: ${{ matrix.build-name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - build-name: openclash-x86-25-source
+            source-repository: immortalwrt/immortalwrt
+            source-ref: v25
+            config: .github/configs/openclash-x86.config
+            openclash: true
+          - build-name: openclash-R66s-25-source
+            source-repository: immortalwrt/immortalwrt
+            source-ref: v25
+            config: .github/configs/openclash-R66s.config
+            openclash: true
+          - build-name: abt3000-ap-source
+            source-repository: hanwckf/immortalwrt-mt798x
+            source-ref: openwrt-21.02
+            config: .github/configs/abt3000-ap.config
+            base-config: defconfig/mt7981-ax3000.config
+            openclash: false
+    concurrency:
+      group: firmware-${{ matrix.build-name }}-${{ github.ref }}
+      cancel-in-progress: false
     runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ github.token }}
-      SOURCE_REPOSITORY: ${{ inputs.source-repository }}
-      SOURCE_REF: ${{ inputs.source-ref }}
-      OPENCLASH: ${{ inputs.openclash }}
-      CONFIG_FILE: ${{ inputs.config }}
-      BASE_CONFIG: ${{ inputs.base-config }}
-      BUILD_NAME: ${{ inputs.build-name }}
+      SOURCE_REPOSITORY: ${{ matrix.source-repository }}
+      SOURCE_REF: ${{ matrix.source-ref }}
+      OPENCLASH: ${{ matrix.openclash }}
+      CONFIG_FILE: ${{ matrix.config }}
+      BASE_CONFIG: ${{ matrix.base-config }}
+      BUILD_NAME: ${{ matrix.build-name }}
       CCACHE_DIR: ${{ github.workspace }}/.source-ccache
       CCACHE_MAXSIZE: 1G
 
@@ -61,9 +63,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: openwrt
-          key: ${{ runner.os }}-${{ inputs.build-name }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-retry-v1-${{ github.run_id }}-
+            ${{ runner.os }}-${{ matrix.build-name }}-retry-v1-${{ github.run_id }}-
 
       - name: Download source
         if: steps.retry.outputs.cache-matched-key == ''
@@ -109,9 +111,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/successful-build
-          key: ${{ runner.os }}-${{ inputs.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-
+            ${{ runner.os }}-${{ matrix.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-
 
       - name: Check previous artifacts
         id: build
@@ -134,9 +136,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: openwrt/dl
-          key: ${{ runner.os }}-${{ inputs.build-name }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-dl-v1-
+            ${{ runner.os }}-${{ matrix.build-name }}-dl-v1-
 
       - name: Configure firmware
         if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
@@ -149,9 +151,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: .source-ccache
-          key: ${{ runner.os }}-${{ inputs.build-name }}-ccache-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ matrix.build-name }}-ccache-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.build-name }}-ccache-v1-
+            ${{ runner.os }}-${{ matrix.build-name }}-ccache-v1-
 
       - name: Download packages
         if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
@@ -194,7 +196,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_buildinfo
+          name: ${{ matrix.build-name }}_buildinfo
           path: openwrt/artifact/buildinfo/
           if-no-files-found: error
           overwrite: true
@@ -203,7 +205,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_package
+          name: ${{ matrix.build-name }}_package
           path: openwrt/artifact/package/
           if-no-files-found: error
           overwrite: true
@@ -212,7 +214,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ inputs.build-name }}_firmware
+          name: ${{ matrix.build-name }}_firmware
           path: openwrt/bin/targets/
           if-no-files-found: error
           overwrite: true
