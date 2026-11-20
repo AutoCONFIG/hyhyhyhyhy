@@ -3,7 +3,7 @@ set -euo pipefail
 : "${1:?source directory required}"
 
 {
-  printf '%s\n' "${GITHUB_SHA:?}" "${SOURCE_FINGERPRINT:-}"
+  printf '%s\n' "${SOURCE_FINGERPRINT:-}"
   for repo in "$@"; do
     if [[ -d "$repo/.git" ]]; then
       git -C "$repo" rev-parse HEAD

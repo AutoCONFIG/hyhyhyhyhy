@@ -1,0 +1,160 @@
+name: Build ImageBuilder
+
+on:
+  workflow_call:
+    inputs:
+      build-name:
+        required: true
+        type: string
+      source-repository:
+        required: true
+        type: string
+      source-ref:
+        required: true
+        type: string
+      config:
+        required: true
+        type: string
+      target:
+        required: true
+        type: string
+      profile:
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.build-name }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    env:
+      GH_TOKEN: ${{ github.token }}
+      BUILD_NAME: ${{ inputs.build-name }}
+      SOURCE_REPOSITORY: ${{ inputs.source-repository }}
+      SOURCE_REF: ${{ inputs.source-ref }}
+      OPENCLASH: 'true'
+      CONFIG_FILE: ${{ inputs.config }}
+      TARGET: ${{ inputs.target }}
+      PROFILE: ${{ inputs.profile }}
+      IMAGEBUILDER_METADATA_DIR: ${{ github.workspace }}/.imagebuilder-metadata
+      IMAGEBUILDER_CACHE: ${{ github.workspace }}/.imagebuilder-cache
+      ARTIFACT_DIR: ${{ github.workspace }}/.imagebuilder-artifact
+
+    steps:
+      - name: Checkout build configuration
+        uses: actions/checkout@v4
+
+      - name: Resolve release and package indexes
+        id: metadata
+        run: bash .github/scripts/imagebuilder-metadata.sh
+
+      - name: Restore ImageBuilder downloads
+        id: downloads
+        uses: actions/cache/restore@v4
+        with:
+          path: .imagebuilder-cache
+          key: ${{ runner.os }}-${{ inputs.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-
+
+      - name: Prepare ImageBuilder inputs
+        id: prepare
+        run: bash .github/scripts/imagebuilder-build.sh prepare
+
+      - name: Fingerprint build inputs
+        id: fingerprint
+        run: |
+          source .imagebuilder-metadata/env
+          paths=( \
+            .github/workflows/build-imagebuilder.yml \
+            .github/scripts/imagebuilder-metadata.sh \
+            .github/scripts/imagebuilder-packages.sh \
+            .github/scripts/imagebuilder-build.sh \
+            .github/scripts/patch-raid.sh \
+            .imagebuilder-metadata/fingerprint \
+            ".imagebuilder-metadata/$OPENCLASH_NAME")
+          if [[ "$TARGET" == x86/64 ]]; then
+            paths+=(.imagebuilder-metadata/files/etc/init.d/mdadm)
+          fi
+          fingerprint=$(bash .github/scripts/config-fingerprint.sh "${paths[@]}")
+          [[ "$fingerprint" =~ ^[0-9a-f]{64}$ ]]
+          echo "key=$fingerprint" >> "$GITHUB_OUTPUT"
+
+      - name: Restore successful build record
+        id: previous
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ runner.temp }}/successful-build
+          key: ${{ runner.os }}-${{ inputs.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-
+
+      - name: Check previous artifacts
+        id: build
+        run: |
+          if bash .github/scripts/previous-build.sh; then
+            echo "required=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "required=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install x86 image tools
+        if: steps.build.outputs.required == 'true' && inputs.target == 'x86/64'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y genisoimage qemu-utils
+
+      - name: Build firmware with ImageBuilder
+        if: steps.build.outputs.required == 'true'
+        run: bash .github/scripts/imagebuilder-build.sh build
+
+      - name: Upload buildinfo
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.build-name }}_buildinfo
+          path: .imagebuilder-artifact/buildinfo/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Upload packages
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.build-name }}_package
+          path: .imagebuilder-artifact/package/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Upload firmware
+        if: steps.build.outputs.required == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.build-name }}_firmware
+          path: .imagebuilder-artifact/firmware/
+          if-no-files-found: error
+          overwrite: true
+
+      - name: Record successful build
+        if: steps.build.outputs.required == 'true'
+        run: echo "$GITHUB_RUN_ID" > "$RUNNER_TEMP/successful-build"
+
+      - name: Save successful build record
+        if: steps.build.outputs.required == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ runner.temp }}/successful-build
+          key: ${{ steps.previous.outputs.cache-primary-key }}
+
+      - name: Save ImageBuilder downloads
+        if: ${{ !cancelled() && steps.downloads.outcome == 'success' && (steps.build.outputs.required == 'true' || failure()) }}
+        uses: actions/cache/save@v4
+        with:
+          path: .imagebuilder-cache
+          key: ${{ steps.downloads.outputs.cache-primary-key }}

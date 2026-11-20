@@ -1,4 +1,4 @@
-name: Build firmware
+name: Build firmware reusable
 
 on:
   workflow_call:
@@ -7,6 +7,9 @@ on:
         required: true
         type: string
       source-ref:
+        required: true
+        type: string
+      build-name:
         required: true
         type: string
       config:
@@ -21,15 +24,15 @@ on:
 
 permissions:
   contents: read
-  actions: read
+  actions: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  group: firmware-${{ inputs.build-name }}-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GH_TOKEN: ${{ github.token }}
       SOURCE_REPOSITORY: ${{ inputs.source-repository }}
@@ -37,19 +40,30 @@ jobs:
       OPENCLASH: ${{ inputs.openclash }}
       CONFIG_FILE: ${{ inputs.config }}
       BASE_CONFIG: ${{ inputs.base-config }}
+      BUILD_NAME: ${{ inputs.build-name }}
+      CCACHE_DIR: ${{ github.workspace }}/.source-ccache
+      CCACHE_MAXSIZE: 1G
 
     steps:
       - name: Checkout build configuration
         uses: actions/checkout@v4
+
+      - name: Check GNU host tools
+        run: install --version | grep 'GNU coreutils'
+
+      - name: Fingerprint build configuration
+        run: |
+          config_fingerprint=$(bash .github/scripts/config-fingerprint.sh .github/workflows/build-firmware.yml .github/scripts/configure.sh .github/scripts/prepare-source.sh .github/scripts/initialize.sh .github/scripts/patch-raid.sh .github/scripts/patch-rust.sh)
+          echo "SOURCE_FINGERPRINT=$config_fingerprint" >> "$GITHUB_ENV"
 
       - name: Restore failed run checkpoint
         id: retry
         uses: actions/cache/restore@v4
         with:
           path: openwrt
-          key: ${{ runner.os }}-${{ github.workflow }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ inputs.build-name }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.workflow }}-retry-v1-${{ github.run_id }}-
+            ${{ runner.os }}-${{ inputs.build-name }}-retry-v1-${{ github.run_id }}-
 
       - name: Download source
         if: steps.retry.outputs.cache-matched-key == ''
@@ -95,9 +109,9 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: ${{ runner.temp }}/successful-build
-          key: ${{ runner.os }}-${{ github.workflow }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ inputs.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ github.workflow }}-build-v1-${{ steps.fingerprint.outputs.key }}-
+            ${{ runner.os }}-${{ inputs.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-
 
       - name: Check previous artifacts
         id: build
@@ -120,20 +134,30 @@ jobs:
         uses: actions/cache/restore@v4
         with:
           path: openwrt/dl
-          key: ${{ runner.os }}-${{ inputs.source-repository }}-${{ inputs.source-ref }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ${{ runner.os }}-${{ inputs.build-name }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ${{ runner.os }}-${{ inputs.source-repository }}-${{ inputs.source-ref }}-dl-v1-
+            ${{ runner.os }}-${{ inputs.build-name }}-dl-v1-
 
       - name: Configure firmware
         if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
         working-directory: openwrt
         run: bash "$GITHUB_WORKSPACE/.github/scripts/configure.sh"
 
+      - name: Restore compiler cache
+        if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
+        id: ccache
+        uses: actions/cache/restore@v4
+        with:
+          path: .source-ccache
+          key: ${{ runner.os }}-${{ inputs.build-name }}-ccache-v1-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ${{ runner.os }}-${{ inputs.build-name }}-ccache-v1-
+
       - name: Download packages
         if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
         id: download
         working-directory: openwrt
-        run: make download -j16
+        run: make download -j16 CONFIG_CCACHE=y CONFIG_CCACHE_DIR="$CCACHE_DIR" CCACHE_COMPILERCHECK=content
 
       - name: Save downloads
         if: ${{ !cancelled() && steps.downloads.outcome == 'success' && (steps.download.outcome == 'success' || steps.download.outcome == 'failure') }}
@@ -147,8 +171,15 @@ jobs:
         id: compile
         working-directory: openwrt
         run: |
-          make -j"$(nproc)" || make -j1 V=s
+          make -j"$(nproc)" CONFIG_CCACHE=y CONFIG_CCACHE_DIR="$CCACHE_DIR" CCACHE_COMPILERCHECK=content || make -j1 V=s CONFIG_CCACHE=y CONFIG_CCACHE_DIR="$CCACHE_DIR" CCACHE_COMPILERCHECK=content
           touch .build-complete
+
+      - name: Save compiler cache
+        if: ${{ !cancelled() && steps.ccache.outcome == 'success' && (steps.compile.outcome == 'success' || steps.compile.outcome == 'failure') }}
+        uses: actions/cache/save@v4
+        with:
+          path: .source-ccache
+          key: ${{ steps.ccache.outputs.cache-primary-key }}
 
       - name: Prepare artifacts
         if: steps.build.outputs.required == 'true'
@@ -163,7 +194,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt_buildinfo
+          name: ${{ inputs.build-name }}_buildinfo
           path: openwrt/artifact/buildinfo/
           if-no-files-found: error
           overwrite: true
@@ -172,7 +203,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt_package
+          name: ${{ inputs.build-name }}_package
           path: openwrt/artifact/package/
           if-no-files-found: error
           overwrite: true
@@ -181,7 +212,7 @@ jobs:
         if: steps.build.outputs.required == 'true'
         uses: actions/upload-artifact@v4
         with:
-          name: immortalwrt_firmware
+          name: ${{ inputs.build-name }}_firmware
           path: openwrt/bin/targets/
           if-no-files-found: error
           overwrite: true

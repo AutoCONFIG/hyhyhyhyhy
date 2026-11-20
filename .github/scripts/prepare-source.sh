@@ -5,7 +5,7 @@ downloads="$RUNNER_TEMP/firmware-sources"
 mkdir -p "$downloads"
 
 case "$SOURCE_REF" in
-  v24|v25)
+  v25)
     version=$(gh api "repos/$SOURCE_REPOSITORY/tags" \
       --jq "[.[] | select(.name | startswith(\"$SOURCE_REF\"))][0].name // empty")
     [[ -n "$version" ]]

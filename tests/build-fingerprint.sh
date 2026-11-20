@@ -34,8 +34,8 @@ ln -sfn .config source/link
 [[ $(fingerprint) != "$before" ]] || { echo 'FAIL: ignored symlink change'; exit 1; }
 
 before=$(fingerprint)
-export GITHUB_SHA=workflow-v2
-[[ $(fingerprint) != "$before" ]] || { echo 'FAIL: ignored workflow revision'; exit 1; }
+export GITHUB_SHA=unrelated-commit
+[[ $(fingerprint) == "$before" ]] || { echo 'FAIL: unrelated commit changed source fingerprint'; exit 1; }
 
 before=$(fingerprint)
 printf 'gitdir: /checkout-specific/path\n' > source/.git
@@ -46,4 +46,4 @@ if bash "$script" missing-directory >/dev/null 2>&1; then
   exit 1
 fi
 
-echo 'PASS: unchanged inputs, timestamps, source, config, OpenClash, feeds, symlinks, workflow revision, Git bookkeeping, missing inputs'
+echo 'PASS: unchanged inputs, timestamps, source, config, OpenClash, feeds, symlinks, Git bookkeeping, missing inputs'

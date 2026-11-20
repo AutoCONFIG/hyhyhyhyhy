@@ -2,11 +2,17 @@
 set -euo pipefail
 
 script=$(realpath "$(dirname "$0")/../.github/scripts/configure.sh")
+patch_script=$(realpath "$(dirname "$0")/../.github/scripts/patch-raid.sh")
+rust_script=$(realpath "$(dirname "$0")/../.github/scripts/patch-rust.sh")
 fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 export GITHUB_WORKSPACE="$fixture/configuration"
 export CONFIG_FILE=overlay.config
+unset CCACHE_DIR
 mkdir -p "$GITHUB_WORKSPACE" "$fixture/source/scripts" "$fixture/source/package/utils/mdadm/files"
+mkdir -p "$GITHUB_WORKSPACE/.github/scripts"
+cp "$patch_script" "$GITHUB_WORKSPACE/.github/scripts/patch-raid.sh"
+cp "$rust_script" "$GITHUB_WORKSPACE/.github/scripts/patch-rust.sh"
 printf 'CONFIG_DEVICE=y\n# CONFIG_UNWANTED is not set\n' > "$GITHUB_WORKSPACE/$CONFIG_FILE"
 printf '#!/usr/bin/env bash\nexit 0\n' > "$fixture/source/scripts/feeds"
 chmod +x "$fixture/source/scripts/feeds"
@@ -36,5 +42,11 @@ printf 'CONFIG_BASE=y\n' > "$BASE_CONFIG"
 cat "$BASE_CONFIG" "$GITHUB_WORKSPACE/$CONFIG_FILE" > expected.config
 bash "$script"
 cmp expected.config configured.config
+
+rm .build-configured
+export CCACHE_DIR=/cache/ccache
+bash "$script"
+grep -Fqx 'CONFIG_CCACHE=y' .config
+grep -Fqx 'CONFIG_CCACHE_DIR="/cache/ccache"' .config
 
 echo 'PASS: exact overlay, inherited base config, failed configuration retry, idempotent RAID patch, completed configuration reuse'

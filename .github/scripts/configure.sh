@@ -3,9 +3,10 @@ set -euo pipefail
 
 [[ ! -f .build-configured ]] || exit 0
 ./scripts/feeds install -a
+bash "$GITHUB_WORKSPACE/.github/scripts/patch-rust.sh"
 
 if [[ "$OPENCLASH" == true ]] && ! grep -q 'echo 800000 > /proc/sys/dev/raid/speed_limit_max' package/utils/mdadm/files/mdadm.init; then
-  sed -i '/\$PROG --assemble --scan --config="\$CONF"/a\\n\t[ -w /proc/sys/dev/raid/speed_limit_min ] && {\n\t\techo 200000 > /proc/sys/dev/raid/speed_limit_min\n\t\techo 800000 > /proc/sys/dev/raid/speed_limit_max\n\t}' package/utils/mdadm/files/mdadm.init
+  bash "$GITHUB_WORKSPACE/.github/scripts/patch-raid.sh" package/utils/mdadm/files/mdadm.init
 fi
 
 rm -f ./.config*
@@ -15,6 +16,9 @@ else
   touch .config
 fi
 cat "$GITHUB_WORKSPACE/$CONFIG_FILE" >> .config
+if [[ -n "${CCACHE_DIR:-}" ]]; then
+  printf 'CONFIG_DEVEL=y\nCONFIG_CCACHE=y\nCONFIG_CCACHE_DIR="%s"\n' "$CCACHE_DIR" >> .config
+fi
 sed -i 's/^[ \t]*//g' .config
 make defconfig
 touch .build-configured

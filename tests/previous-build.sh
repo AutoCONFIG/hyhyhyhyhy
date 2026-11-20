@@ -6,18 +6,23 @@ fixture=$(mktemp -d)
 trap 'rm -rf "$fixture"' EXIT
 export RUNNER_TEMP="$fixture"
 export GITHUB_REPOSITORY=owner/firmware GITHUB_SERVER_URL=https://github.com
+export BUILD_NAME=target-source
 export GITHUB_STEP_SUMMARY="$fixture/summary"
 export ARTIFACT_RESPONSE="$fixture/artifacts.json"
 export API_FAILURE=false
-export JQ="${JQ:-jq}"
+JQ=$(command -v "${JQ:-jq}")
+export JQ
+mkdir -p "$fixture/bin"
+ln -sf "$JQ" "$fixture/bin/jq"
+export PATH="$fixture/bin:$PATH"
 
 gh() {
   [[ "$API_FAILURE" != true ]] || return 1
-  "$JQ" -r "$4" "$ARTIFACT_RESPONSE"
+  cat "$ARTIFACT_RESPONSE"
 }
 export -f gh
 
-printf '%s\n' '{"artifacts":[{"name":"immortalwrt_buildinfo","expired":false},{"name":"immortalwrt_package","expired":false},{"name":"immortalwrt_firmware","expired":false}]}' > "$fixture/complete.json"
+printf '%s\n' '{"artifacts":[{"name":"target-source_buildinfo","expired":false},{"name":"target-source_package","expired":false},{"name":"target-source_firmware","expired":false}]}' > "$fixture/complete.json"
 printf '12345\n' > "$RUNNER_TEMP/successful-build"
 cp "$fixture/complete.json" "$ARTIFACT_RESPONSE"
 bash "$script"
@@ -30,7 +35,7 @@ rejects_previous_build() {
   fi
 }
 
-for artifact in immortalwrt_buildinfo immortalwrt_package immortalwrt_firmware; do
+for artifact in target-source_buildinfo target-source_package target-source_firmware; do
   "$JQ" --arg name "$artifact" '.artifacts |= map(select(.name != $name))' "$fixture/complete.json" > "$ARTIFACT_RESPONSE"
   rejects_previous_build "missing $artifact"
   "$JQ" --arg name "$artifact" '(.artifacts[] | select(.name == $name)).expired = true' "$fixture/complete.json" > "$ARTIFACT_RESPONSE"
@@ -38,6 +43,12 @@ for artifact in immortalwrt_buildinfo immortalwrt_package immortalwrt_firmware; 
 done
 
 cp "$fixture/complete.json" "$ARTIFACT_RESPONSE"
+"$JQ" '.artifacts[].name += "-backup"' "$fixture/complete.json" > "$ARTIFACT_RESPONSE"
+rejects_previous_build 'artifact names only contain the expected names'
+cp "$fixture/complete.json" "$ARTIFACT_RESPONSE"
+export BUILD_NAME=target-imagebuilder
+rejects_previous_build 'artifacts from another build lane'
+export BUILD_NAME=target-source
 export API_FAILURE=true
 rejects_previous_build 'API failure'
 export API_FAILURE=false
