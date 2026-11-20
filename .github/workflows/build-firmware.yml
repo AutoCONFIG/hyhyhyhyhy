@@ -1,4 +1,4 @@
-name: Build firmware reusable
+name: Build firmware
 
 on:
   workflow_call:

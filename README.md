@@ -1,6 +1,6 @@
 # 每日固件构建
 
-`.github/workflows/firmware.yml` 是唯一入口，每日定时运行，也支持手动触发；master 分支的 `.github/` 配置变化会触发，用矩阵并行运行三条源码构建和两条 ImageBuilder 构建。
+`.github/workflows/firmware.yml` 是唯一入口，每天北京时间 02:00 定时触发。推送到 `master` 的 `.github/` 改动也会触发。矩阵并行运行三条源码构建和两条 ImageBuilder 构建。
 23、24 系列入口已移除；25 系列保留 x86 和 R66s 两条路线，abt3000 继续使用源码构建。
 设备与软件包选项位于 `.github/configs/`；abt3000 仍先读取上游 `defconfig/mt7981-ax3000.config`，再追加本仓库的选项。
 
