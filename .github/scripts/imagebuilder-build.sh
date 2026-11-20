@@ -84,6 +84,10 @@ files_dir=
 if [[ "$TARGET" == x86/64 ]]; then
   files_dir="$metadata_dir/files"
   [[ -s "$files_dir/etc/init.d/mdadm" ]] || { echo "mdadm overlay was not prepared" >&2; exit 1; }
+  sed -Ei \
+    -e 's/^CONFIG_((ISO|QCOW2|VDI|VMDK|VHDX)_IMAGES|TARGET_ROOTFS_TARGZ)=y$/# CONFIG_\1 is not set/' \
+    -e '/^(# )?CONFIG_TARGET_IMAGES_GZIP(=| )/d' "$imagebuilder_dir/.config"
+  printf '\nCONFIG_TARGET_IMAGES_GZIP=y\n' >> "$imagebuilder_dir/.config"
 fi
 
 make_args=(image "PROFILE=$PROFILE" "PACKAGES=$packages" "ROOTFS_PARTSIZE=$rootfs_partsize")
