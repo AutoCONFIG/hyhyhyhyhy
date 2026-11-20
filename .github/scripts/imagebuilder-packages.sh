@@ -3,6 +3,7 @@ set -euo pipefail
 
 config_file=${1:?configuration file required}
 target=${2:?target required}
+translation_index=${3:?translation index required}
 [[ -f "$config_file" ]] || { echo "configuration file not found: $config_file" >&2; exit 1; }
 
 packages=()
@@ -39,5 +40,15 @@ done < "$config_file"
 if [[ "$target" == x86/64 && "$diskman" == true ]]; then
   packages+=(btrfs-progs lsblk)
 fi
+
+mapfile -t profile_packages
+packages+=(luci-i18n-base-zh-cn)
+for app in luci-app-firewall luci-app-package-manager "${profile_packages[@]}" "${packages[@]}"; do
+  [[ "$app" == luci-app-* ]] || continue
+  translation="luci-i18n-${app#luci-app-}-zh-cn"
+  if grep -Fxq -- "$translation" "$translation_index"; then
+    packages+=("$translation")
+  fi
+done
 
 printf '%s\n' "${packages[@]}" | sort -u

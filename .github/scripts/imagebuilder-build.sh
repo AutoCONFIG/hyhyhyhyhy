@@ -64,14 +64,19 @@ ln -s "$cache_dir/dl" "$imagebuilder_dir/dl"
 
 mkdir -p "$imagebuilder_dir/packages"
 cp -f "$metadata_dir/$OPENCLASH_NAME" "$imagebuilder_dir/packages/"
-package_version=$("$imagebuilder_dir/staging_dir/host/bin/apk" adbdump "$metadata_dir/$OPENCLASH_NAME" |
+apk="$imagebuilder_dir/staging_dir/host/bin/apk"
+package_version=$("$apk" adbdump "$metadata_dir/$OPENCLASH_NAME" |
   awk '$1 == "version:" && !found { print $2; found = 1 }')
 [[ "$package_version" == "${OPENCLASH_VERSION#v}" ]] || {
   echo "OpenClash package version $package_version does not match $OPENCLASH_VERSION" >&2
   exit 1
 }
-packages=$(bash "$GITHUB_WORKSPACE/.github/scripts/imagebuilder-packages.sh" "$GITHUB_WORKSPACE/$CONFIG_FILE" "$TARGET" | paste -sd' ' -)
-[[ -n "$packages" ]] || { echo "configuration selected no packages" >&2; exit 1; }
+translation_index="$metadata_dir/zh-cn-packages"
+"$apk" adbdump "$metadata_dir/indexes/"*.packages.adb |
+  awk '$1 == "-" && $2 == "name:" && $3 ~ /^luci-i18n-.*-zh-cn$/ { print $3 }' > "$translation_index"
+jq_bin=${JQ:-jq}
+profile_packages=$("$jq_bin" -r --arg profile "$PROFILE" '.default_packages[], .profiles[$profile].device_packages[]' "$metadata_dir/profiles.json")
+packages=$(bash "$GITHUB_WORKSPACE/.github/scripts/imagebuilder-packages.sh" "$GITHUB_WORKSPACE/$CONFIG_FILE" "$TARGET" "$translation_index" <<< "$profile_packages" | paste -sd' ' -)
 rootfs_partsize=$(sed -n 's/^CONFIG_TARGET_ROOTFS_PARTSIZE=//p' "$GITHUB_WORKSPACE/$CONFIG_FILE" | tail -n1)
 [[ "$rootfs_partsize" =~ ^[0-9]+$ ]] || { echo "CONFIG_TARGET_ROOTFS_PARTSIZE is missing" >&2; exit 1; }
 
