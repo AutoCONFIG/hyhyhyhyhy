@@ -49,7 +49,7 @@ jobs:
 
     steps:
       - name: Checkout build configuration
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Resolve release and package indexes
         id: metadata
@@ -57,7 +57,7 @@ jobs:
 
       - name: Restore ImageBuilder downloads
         id: downloads
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .imagebuilder-cache
           key: ${{ runner.os }}-${{ matrix.build-name }}-downloads-v1-${{ steps.metadata.outputs.source_version }}-${{ steps.metadata.outputs.openclash_version }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -89,7 +89,7 @@ jobs:
 
       - name: Restore successful build record
         id: previous
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ runner.temp }}/successful-build
           key: ${{ runner.os }}-${{ matrix.build-name }}-build-v2-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Upload buildinfo
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_buildinfo
           path: .imagebuilder-artifact/buildinfo/
@@ -120,7 +120,7 @@ jobs:
 
       - name: Upload packages
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_package
           path: .imagebuilder-artifact/package/
@@ -129,7 +129,7 @@ jobs:
 
       - name: Upload firmware
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_firmware
           path: .imagebuilder-artifact/firmware/
@@ -142,14 +142,14 @@ jobs:
 
       - name: Save successful build record
         if: steps.build.outputs.required == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: ${{ runner.temp }}/successful-build
           key: ${{ steps.previous.outputs.cache-primary-key }}
 
       - name: Save ImageBuilder downloads
         if: ${{ !cancelled() && steps.downloads.outcome == 'success' && (steps.build.outputs.required == 'true' || failure()) }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: .imagebuilder-cache
           key: ${{ steps.downloads.outputs.cache-primary-key }}

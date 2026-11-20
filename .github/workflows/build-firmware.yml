@@ -51,7 +51,7 @@ jobs:
 
     steps:
       - name: Checkout build configuration
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Check GNU host tools
         run: install --version | grep 'GNU coreutils'
@@ -63,7 +63,7 @@ jobs:
 
       - name: Restore failed run checkpoint
         id: retry
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: openwrt
           key: ${{ runner.os }}-${{ matrix.build-name }}-retry-v1-${{ github.run_id }}-${{ github.run_attempt }}
@@ -111,7 +111,7 @@ jobs:
 
       - name: Restore successful build record
         id: previous
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ runner.temp }}/successful-build
           key: ${{ runner.os }}-${{ matrix.build-name }}-build-v1-${{ steps.fingerprint.outputs.key }}-${{ github.run_id }}-${{ github.run_attempt }}
@@ -136,7 +136,7 @@ jobs:
       - name: Restore downloads
         if: steps.build.outputs.required == 'true' && steps.retry.outputs.cache-matched-key == ''
         id: downloads
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: openwrt/dl
           key: ${{ runner.os }}-${{ matrix.build-name }}-dl-v1-${{ github.run_id }}-${{ github.run_attempt }}
@@ -151,7 +151,7 @@ jobs:
       - name: Restore compiler cache
         if: steps.build.outputs.required == 'true' && steps.fingerprint.outputs.compiled != 'true'
         id: ccache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@v6.1.0
         with:
           path: .source-ccache
           key: ${{ runner.os }}-${{ matrix.build-name }}-ccache-v1-${{ github.run_id }}-${{ github.run_attempt }}
@@ -166,7 +166,7 @@ jobs:
 
       - name: Save downloads
         if: ${{ !cancelled() && steps.downloads.outcome == 'success' && (steps.download.outcome == 'success' || steps.download.outcome == 'failure') }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: openwrt/dl
           key: ${{ steps.downloads.outputs.cache-primary-key }}
@@ -181,7 +181,7 @@ jobs:
 
       - name: Save compiler cache
         if: ${{ !cancelled() && steps.ccache.outcome == 'success' && (steps.compile.outcome == 'success' || steps.compile.outcome == 'failure') }}
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: .source-ccache
           key: ${{ steps.ccache.outputs.cache-primary-key }}
@@ -197,7 +197,7 @@ jobs:
 
       - name: Upload buildinfo
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_buildinfo
           path: openwrt/artifact/buildinfo/
@@ -206,7 +206,7 @@ jobs:
 
       - name: Upload packages
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_package
           path: openwrt/artifact/package/
@@ -215,7 +215,7 @@ jobs:
 
       - name: Upload firmware
         if: steps.build.outputs.required == 'true'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7.0.2
         with:
           name: ${{ matrix.build-name }}_firmware
           path: openwrt/bin/targets/
@@ -228,14 +228,14 @@ jobs:
 
       - name: Save successful build record
         if: steps.build.outputs.required == 'true'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: ${{ runner.temp }}/successful-build
           key: ${{ steps.previous.outputs.cache-primary-key }}
 
       - name: Save failed run checkpoint
         if: failure() && steps.fingerprint.outcome == 'success'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@v6.1.0
         with:
           path: openwrt
           key: ${{ steps.retry.outputs.cache-primary-key }}
