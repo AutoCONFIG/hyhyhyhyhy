@@ -18,17 +18,17 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - build-name: openclash-x86-25-source
+          - build-name: openclash-x86-25
             source-repository: immortalwrt/immortalwrt
             source-ref: v25
             config: .github/configs/openclash-x86.config
             openclash: true
-          - build-name: openclash-R66s-25-source
+          - build-name: openclash-R66s-25
             source-repository: immortalwrt/immortalwrt
             source-ref: v25
             config: .github/configs/openclash-R66s.config
             openclash: true
-          - build-name: abt3000-ap-source
+          - build-name: abt3000-ap
             source-repository: hanwckf/immortalwrt-mt798x
             source-ref: openwrt-21.02
             config: .github/configs/abt3000-ap.config
